@@ -1,7 +1,26 @@
 import streamlit as st
 import pandas as pd
+from PIL import Image
 
-st.title("Validation des options de bennes")
+
+# --- Configuration de la page ---
+st.set_page_config(
+    page_title="Validation Bennes",
+    page_icon="logo.jpg",  # favicon dans l'onglet
+    layout="wide"          # permet de mieux gérer les colonnes
+)
+
+# --- Charger le logo ---
+logo = Image.open("logo.jpg")
+
+# --- Placer le logo en haut à gauche ---
+col1, col2 = st.columns([1, 5])  # colonne 1 petite pour le logo, colonne 2 pour le reste
+
+with col1:
+    st.image(logo, width=300)  # plus gros logo
+
+with col2:
+    st.title("Validation des options de bennes")  # titre à côté du logo
 
 # --- 1. Charger les fichiers CSV ---
 options_df = pd.read_csv("options.csv")  # Colonnes : Benne, Longueur, TypePorte, Option
@@ -10,6 +29,7 @@ regles_df = pd.read_csv("regles.csv")    # Colonnes : Option, Statut
 # Nettoyer les colonnes
 options_df.columns = options_df.columns.str.strip()
 regles_df.columns = regles_df.columns.str.strip()
+
 
 # --- 2. Listes de validation ---
 bonnes_options = regles_df[regles_df["Statut"] == "Bon"]["Option"].tolist()
