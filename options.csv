@@ -1,4 +1,16 @@
-Option
-Benne A
-Benne B
-Benne C
+Benne,Longueur,TypePorte,Option
+BBMS,11,Simple,A
+BBMS,12,Simple,B
+BBMS,13,Simple,C
+BBMS,14,Double,D
+BBMS,15,Double,E
+BMT-S,11,Simple,F
+BMT-S,12,Simple,G
+BMT-S,13,Double,H
+BMT-S,14,Double,I
+BFL_P,15,Simple,J
+BFL_P,16,Simple,K
+BFL_P,17,Double,L
+BFL_P,18,Double,M
+BFL_P,19,Simple,N
+BFL_P,20,Simple,O

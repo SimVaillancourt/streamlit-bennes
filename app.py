@@ -1,27 +1,73 @@
 import streamlit as st
 import pandas as pd
 
-# Titre de l'application
-st.title("Validation des options des bennes")
+st.title("Validation des options de bennes")
 
-# Charger les données des options
-options_file = "options.csv"  # fichier CSV avec toutes les options
-regles_file = "regles.csv"    # fichier CSV avec les règles de validation
+# --- 1. Charger les fichiers CSV ---
+options_df = pd.read_csv("options.csv")  # Colonnes : Benne, Longueur, TypePorte, Option
+regles_df = pd.read_csv("regles.csv")    # Colonnes : Option, Statut
 
-# Lecture des CSV
-try:
-    options_df = pd.read_csv(options_file)
-    regles_df = pd.read_csv(regles_file)
-except FileNotFoundError:
-    st.error("Les fichiers options.csv et regles.csv doivent être dans le même dossier que app.py")
-    st.stop()
+# Nettoyer les colonnes
+options_df.columns = options_df.columns.str.strip()
+regles_df.columns = regles_df.columns.str.strip()
 
-# Sélection de l'option par l'utilisateur
-option_choisie = st.selectbox("Choisis une option :", options_df['Option'])
+# --- 2. Listes de validation ---
+bonnes_options = regles_df[regles_df["Statut"] == "Bon"]["Option"].tolist()
+mauvaises_options = regles_df[regles_df["Statut"] == "Mauvais"]["Option"].tolist()
 
-# Validation simple
+# --- 3. Sélecteurs pour filtrer la benne ---
+st.header("Sélectionnez votre benne")
+
+type_benne = st.selectbox(
+    "Type de benne",
+    options_df["Benne"].unique()
+)
+
+longueur_benne = st.selectbox(
+    "Longueur (pieds)",
+    sorted(options_df["Longueur"].unique())
+)
+
+type_porte = st.selectbox(
+    "Type de porte",
+    options_df["TypePorte"].unique()
+)
+
+# --- 4. Bouton de validation ---
 if st.button("Valider"):
-    if option_choisie in regles_df['Option_valide'].values:
-        st.success(f"L'option '{option_choisie}' est valide ✅")
+
+    # Filtrer le dataframe selon les choix
+    filtre = options_df[
+        (options_df["Benne"] == type_benne) &
+        (options_df["Longueur"] == int(longueur_benne)) &
+        (options_df["TypePorte"] == type_porte)
+    ]
+
+    if filtre.empty:
+        st.warning("Aucune option trouvée pour cette combinaison.")
     else:
-        st.error(f"L'option '{option_choisie}' n'est pas valide ❌")
+        # Déterminer le statut pour chaque option
+        def valider_option(option):
+            if option in bonnes_options:
+                return "✅ Bon"
+            elif option in mauvaises_options:
+                return "❌ Mauvais"
+            else:
+                return "🟨 À valider"
+
+        filtre["Statut"] = filtre["Option"].apply(valider_option)
+
+        # Affichage du tableau coloré
+        st.markdown(
+            "✅ Vert = Bon | ❌ Rouge = Mauvais | 🟨 Jaune = À valider"
+        )
+
+        def color_row(row):
+            if row["Statut"] == "✅ Bon":
+                return ['background-color: lightgreen']*len(row)
+            elif row["Statut"] == "❌ Mauvais":
+                return ['background-color: salmon']*len(row)
+            else:
+                return ['background-color: yellow']*len(row)
+
+        st.dataframe(filtre.style.apply(color_row, axis=1))
