@@ -1,61 +1,12 @@
-Option,Statut
-A,Bon
-B,Mauvais
-C,À valider
-D,Bon
-E,Mauvais
-F,À valider
-G,Bon
-H,Mauvais
-I,À valider
-J,Bon
-K,Mauvais
-L,À valider
-M,Bon
-N,Mauvais
-O,À valider
-P,Bon
-Q,Mauvais
-R,À valider
-S,Bon
-T,Mauvais
-U,À valider
-V,Bon
-W,Mauvais
-X,À valider
-Y,Bon
-Z,Mauvais
-A1,À valider
-B1,Bon
-C1,Mauvais
-D1,À valider
-E1,Bon
-F1,Mauvais
-G1,À valider
-H1,Bon
-I1,Mauvais
-J1,À valider
-K1,Bon
-L1,Mauvais
-M1,À valider
-N1,Bon
-O1,Mauvais
-P1,À valider
-Q1,Bon
-R1,Mauvais
-S1,À valider
-T1,Bon
-U1,Mauvais
-V1,À valider
-W1,Bon
-X1,Mauvais
-Y1,À valider
-Z1,Bon
-A2,Mauvais
-B2,À valider
-C2,Bon
-D2,Mauvais
-E2,À valider
-F2,Bon
-G2,Mauvais
-H2,À valider
+condition_option,condition_code,regle,option_affectee,valeur
+modele,BBMS,interdit,type_porte,H
+modele,BMT-S,obligatoire,type_devant,I
+modele,BFL_P,obligatoire,cylindre,REN
+
+type_porte,D,min,hauteur_porte,54
+type_porte,S,max,hauteur_porte,60
+
+longueur,216,min,hauteur_poteau,72
+longueur,240,obligatoire,cylindre,HP
+
+hauteur_cote,72,obligatoire,hauteur_poteau,78
