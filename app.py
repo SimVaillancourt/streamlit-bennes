@@ -1,14 +1,13 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-import re
 
 # ======================================================
 # CONFIGURATION PAGE
 # ======================================================
 st.set_page_config(
     page_title="Validation Bennes",
-    page_icon="logo.jpg",
+    page_icon="favicon.ico",  # <-- Favicon ajouté ici
     layout="wide"
 )
 
@@ -31,21 +30,13 @@ with col2:
 # CHARGEMENT DES DONNÉES
 # ======================================================
 options_df = pd.read_csv("options.csv")
-regles_df = pd.read_csv("regles.csv")
 accessoires_df = pd.read_csv("accessoires.csv")
-regles_accessoires_df = pd.read_csv("regles_accessoires.csv")
 conditions_bennes_df = pd.read_csv("conditions_bennes.csv")
 
 # ======================================================
 # NETTOYAGE DES DONNÉES
 # ======================================================
-for df in [
-    options_df,
-    regles_df,
-    accessoires_df,
-    regles_accessoires_df,
-    conditions_bennes_df
-]:
+for df in [options_df, accessoires_df, conditions_bennes_df]:
     df.columns = df.columns.str.strip()
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].str.strip()
@@ -137,19 +128,32 @@ def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
     return erreurs
 
 # ======================================================
-# SÉLECTION CONFIGURATION
+# SÉLECTION CONFIGURATION EN 2 COLONNES
 # ======================================================
 st.header("Configuration de la benne")
 
 options_a_afficher = options_df["option"].unique()
 selection_options = {}
 
-for opt in options_a_afficher:
+# Créer deux colonnes
+col1, col2 = st.columns(2)
+
+for i, opt in enumerate(options_a_afficher):
     valeurs = options_df[options_df["option"] == opt]["label"].unique()
-    selection_options[opt] = st.selectbox(
-        opt.replace("_", " ").capitalize(),
-        valeurs
-    )
+    
+    # Alterner entre col1 et col2
+    if i % 2 == 0:
+        with col1:
+            selection_options[opt] = st.selectbox(
+                opt.replace("_", " ").capitalize(),
+                valeurs
+            )
+    else:
+        with col2:
+            selection_options[opt] = st.selectbox(
+                opt.replace("_", " ").capitalize(),
+                valeurs
+            )
 
 # ======================================================
 # ACCESSOIRES
@@ -170,42 +174,7 @@ if st.button("Valider la configuration"):
     st.subheader("Résultat de validation")
 
     # --------------------------------------------------
-    # ÉTAPE 1 & 2 : règles existantes
-    # --------------------------------------------------
-    for _, regle in regles_df.iterrows():
-        cond_opt = regle["condition_option"]
-        cond_code = regle["condition_code"]
-        action_opt = regle["option_affectee"]
-        action_val = str(regle["valeur"])
-        action_type = regle["regle"]
-
-        if selection_options.get(cond_opt) == cond_code:
-            if action_type == "interdit" and selection_options.get(action_opt) == action_val:
-                erreurs_config.append(
-                    f"{action_opt} = {action_val} est interdit pour {cond_opt} = {cond_code}"
-                )
-
-            elif action_type == "obligatoire" and selection_options.get(action_opt) != action_val:
-                erreurs_config.append(
-                    f"{action_opt} doit être {action_val} pour {cond_opt} = {cond_code}"
-                )
-
-            elif action_type == "min":
-                try:
-                    if float(selection_options.get(action_opt)) < float(action_val):
-                        erreurs_config.append(f"{action_opt} doit être ≥ {action_val}")
-                except:
-                    pass
-
-            elif action_type == "max":
-                try:
-                    if float(selection_options.get(action_opt)) > float(action_val):
-                        erreurs_config.append(f"{action_opt} doit être ≤ {action_val}")
-                except:
-                    pass
-
-    # --------------------------------------------------
-    # ÉTAPE 3 : VALIDATION DES DIMENSIONS
+    # VALIDATION DES DIMENSIONS
     # --------------------------------------------------
     code_benne = get_option_value(selection_options, ["code", "modele", "prefix", "benne"])
     longueur_raw = get_option_value(selection_options, ["long"])
@@ -250,23 +219,9 @@ if st.button("Valider la configuration"):
     # --------------------------------------------------
     # VALIDATION ACCESSOIRES
     # --------------------------------------------------
-    resultats = []
-    for acc in accessoires_selectionnes:
-        row = regles_accessoires_df[regles_accessoires_df["Code"] == acc]
-        statut = "Bon" if not row.empty else "A valider"
-        resultats.append({"Accessoire": acc, "Statut": statut})
-
-    if resultats:
-        df_res = pd.DataFrame(resultats)
-
-        def color_row(row):
-            if row["Statut"] == "Bon":
-                return ["background-color: lightgreen"] * len(row)
-            elif row["Statut"] == "Mauvais":
-                return ["background-color: salmon"] * len(row)
-            else:
-                return ["background-color: khaki"] * len(row)
-
-        st.dataframe(df_res.style.apply(color_row, axis=1))
+    if accessoires_selectionnes:
+        st.write("Accessoires sélectionnés :")
+        for acc in accessoires_selectionnes:
+            st.write("•", acc)
     else:
         st.info("Aucun accessoire sélectionné.")
