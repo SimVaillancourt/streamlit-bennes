@@ -2,28 +2,28 @@ option,label,code
 modele,BBFL,BBFL
 modele,BBFS,BBFS
 modele,BBMT,BBMT
-modele,BFL_P,BFL_P
-modele,BFL_P SP,BFL_P SP
-modele,BFL_S,BFL_S
-modele,BFL_S SP,BFL_S SP
+modele,BFL-P,BFL-P
+modele,BFL-P SP,BFL-P SP
+modele,BFL-S,BFL-S
+modele,BFL-S SP,BFL-S SP
 modele,BFS,BFS
 modele,BME500,BME500
-modele,BME5_42,BME5_42
+modele,BME5-42,BME5-42
 modele,BMS,BMS
-modele,BMT_P,BMT_P
-modele,BMT_S,BMT_S
-modele,EL_188,EL_188
-modele,EL_250,EL_250
+modele,BMT-P,BMT-P
+modele,BMT-S,BMT-S
+modele,EL-188,EL-188
+modele,EL-250,EL-250
 modele,MHD,MHD
-modele,MS_HD,MS_HD
-modele,MSO_2,MSO_2
-modele,MSOE_2,MSOE_2
+modele,MS-HD,MS-HD
+modele,MSO-2,MSO-2
+modele,MSOE-2,MSOE-2
 modele,PROTO,PROTO
 modele,PROTO SS,PROTO SS
-modele,REM_BFL,REM_BFL
-modele,REM_BMT,REM_BMT
-modele,REM_C,REM_C
-modele,REM_D,REM_D
+modele,REM-BFL,REM-BFL
+modele,REM-BMT,REM-BMT
+modele,REM-C,REM-C
+modele,REM-D,REM-D
 modele,TBD,TBD
 
 

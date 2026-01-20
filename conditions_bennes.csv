@@ -1,0 +1,6 @@
+prefixes,long_min,long_max,height_min,height_max,door_height_min,door_height_max
+BFL|BMT|EL,13,22,36,60,42,66
+BBFL|BBMT,9,13,24,36,30,48
+MS-HD,9,13,18,30,24,48
+Inox,9,16,18,48,24,60
+SM,20,30,42,66,48,72
