@@ -104,7 +104,7 @@ hauteur_cote,6648,6648
 hauteur_cote,6654,6654
 hauteur_cote,6660,6660
 
-
+hauteur_poteau, Auncun poteau sélectionné, Aucun poteau sélectionné
 hauteur_poteau,14",14
 hauteur_poteau,18",18
 hauteur_poteau,20",20
@@ -129,8 +129,7 @@ hauteur_porte,54",54
 hauteur_porte,60",60
 hauteur_porte,66",66
 
-type_porte,Inclinee,I
-type_porte,Double,D
+
 
 type_devant,20,20
 type_devant,30,30

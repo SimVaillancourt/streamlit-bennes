@@ -1,0 +1,12 @@
+type,prefixes,code_a,code_b,message
+incompatible,*,PAUT,OPM,Porte automatique et manuelle incompatibles
+interdit,REM,PDA,,Porte double action non permise pour les bennes REM
+interdit,REM,PAUT,,Porte automatique non permise pour les bennes REM
+interdit,BBFL,PAUT,,Porte automatique non permise pour les bennes BBFL
+interdit,BBMT,PAUT,,Porte automatique non permise pour les bennes BBMT
+interdit,MS-HD,PAUT,,Porte automatique non permise pour les bennes MS-HD
+interdit,Inox,PAUT,,Porte automatique non permise pour les bennes en acier inox
+interdit,REM,OPM,,Porte à ouverture manuelle non permise pour les bennes REM
+interdit, BBFL, I12,,Porte inclinée 12" non permise pour les bennes BBFL
+interdit, BBMT, I12,,Porte inclinée 12" non permise pour les bennes BBMT
+interdit, MS-HD, I12,,Porte inclinée 12" non permise pour les bennes MS-HD
