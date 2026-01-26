@@ -1,35 +1,6 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
-from passlib.hash import bcrypt  # <-- Remplacement de bcrypt par passlib[bcrypt]
-
-def check_password():
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-
-    if st.session_state.authenticated:
-        return True
-
-    st.title("🔒 Accès sécurisé")
-
-    password = st.text_input(
-        "Mot de passe",
-        type="password"
-    )
-
-    if st.button("Se connecter"):
-        # Vérification avec passlib
-        if bcrypt.verify(password, st.secrets["APP_PASSWORD_HASH"]):
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("Mot de passe incorrect")
-
-    return False
-
-
-if not check_password():
-    st.stop()
 
 # ======================================================
 # CONFIGURATION PAGE
@@ -335,6 +306,3 @@ if st.button("Valider la configuration"):
         )
 
         st.dataframe(df_export, use_container_width=True)
-
-
-
