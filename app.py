@@ -2,6 +2,46 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 
+import bcrypt
+
+
+def check_password():
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+
+    if st.session_state.authenticated:
+        return True
+
+
+    st.title("🔒 Accès sécurisé")
+
+
+    password = st.text_input(
+        "Mot de passe",
+        type="password"
+    )
+
+
+    if st.button("Se connecter"):
+        if bcrypt.checkpw(
+            password.encode(),
+            st.secrets["APP_PASSWORD_HASH"].encode()
+        ):
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Mot de passe incorrect")
+
+
+    return False
+
+
+
+
+if not check_password():
+    st.stop()
+
 # ======================================================
 # CONFIGURATION PAGE
 # ======================================================
@@ -120,6 +160,40 @@ def valider_conditions_accessoires(code_benne, accessoires, conditions_df):
                 erreurs.append(f"❌ {row['message']}")
 
     return erreurs
+
+def traduire_production(selection_options, accessoires, options_df, accessoires_df):
+    lignes = []
+
+    # Options principales
+    for option, valeur in selection_options.items():
+        ligne = options_df[
+            (options_df["option"] == option) &
+            (options_df["label"] == valeur)
+        ]
+
+        if not ligne.empty:
+            prod = ligne.iloc[0].get("production_code", valeur)
+            lignes.append({
+                "Type": "Option",
+                "Code": option,
+                "Valeur": valeur,
+                "Production": prod
+            })
+
+    # Accessoires
+    for acc in accessoires:
+        ligne = accessoires_df[accessoires_df["Code"] == acc]
+        if not ligne.empty:
+            prod = ligne.iloc[0].get("production_code", acc)
+            lignes.append({
+                "Type": "Accessoire",
+                "Code": acc,
+                "Valeur": ligne.iloc[0]["Description"],
+                "Production": prod
+            })
+
+    return pd.DataFrame(lignes)
+
 
 # ======================================================
 # LOGO + TITRE
@@ -249,3 +323,29 @@ if st.button("Valider la configuration"):
             st.write("•", acc)
     else:
         st.info("Aucun accessoire sélectionné.")
+
+    # ======================================================
+    # EXPORT LANGAGE DE PRODUCTION
+    # ======================================================
+    st.divider()
+    st.subheader("Export – Langage de production")
+
+    if not erreurs_config:
+        df_export = traduire_production(
+            selection_options,
+            accessoires_selectionnes,
+            options_df,
+            accessoires_df
+        )
+
+        st.download_button(
+            label="📤 Télécharger la configuration (CSV production)",
+            data=df_export.to_csv(index=False),
+            file_name="configuration_production.csv",
+            mime="text/csv"
+        )
+
+        st.dataframe(df_export, use_container_width=True)
+
+
+

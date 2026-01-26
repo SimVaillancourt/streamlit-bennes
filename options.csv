@@ -1,4 +1,4 @@
-option,label,code
+option,label,production_code
 modele,BBFL,BBFL
 modele,BBFS,BBFS
 modele,BBMT,BBMT
@@ -25,7 +25,6 @@ modele,REM-BMT,REM-BMT
 modele,REM-C,REM-C
 modele,REM-D,REM-D
 modele,TBD,TBD
-
 
 longueur,8'-0",96
 longueur,8'-6",102
@@ -128,8 +127,6 @@ hauteur_porte,48",48
 hauteur_porte,54",54
 hauteur_porte,60",60
 hauteur_porte,66",66
-
-
 
 type_devant,20,20
 type_devant,30,30

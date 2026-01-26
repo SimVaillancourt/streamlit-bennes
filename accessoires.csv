@@ -1,24 +1,24 @@
-Code,Description,Categorie
-PHL, Porte Hi-lift - Porte min 36",Porte
-PDA, Porte double action,Porte
-PAUT, Porte automatique,Porte
-OPM, Porte à ouverture manuelle,Porte
-I12, Porte inclinée à 12",Porte
+Code,Description,Categorie, production_code
+PHL, Porte Hi-lift - Porte min 36",Porte,PA
+PDA, Porte double action,Porte,
+PAUT, Porte automatique,Porte,
+OPM, Porte à ouverture manuelle,Porte,
+I12, Porte inclinée à 12",Porte,
 
-DI, Devant inclinée,Devant
-20,20,Devant
-30,30,Devant
-40,40,Devant
-50,50,Devant
-DHPP,Prise de cylindre Pin to Pin,Devant
-DPP51,DPP51,Devant
-DEPC65,Devant pour protège cabine 65",Devant
+DI, Devant inclinée,Devant,
+20,20,Devant,
+30,30,Devant,
+40,40,Devant,
+50,50,Devant,
+DHPP,Prise de cylindre Pin to Pin,Devant,
+DPP51,DPP51,Devant,
+DEPC65,Devant pour protège cabine 65",Devant,
 
-SP, Côté sans poteaux,Cote
-AP, Côté avec poteaux, Cote
-CI, Côté inclinées, Cote
+SP, Côté sans poteaux,Cote,
+AP, Côté avec poteaux, Cote,
+CI, Côté inclinées, Cote,
 
-TLS, Trous de lumières sup.,Autre
+TLS, Trous de lumières sup.,Autre,
 
 
 
