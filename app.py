@@ -84,7 +84,7 @@ def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
 
         if not (row["height_min"] <= hauteur <= row["height_max"]):
             erreurs_locales.append(
-                f"❌ Hauteur invalide ({hauteur}\"). "
+                f"❌ Hauteur du côté invalide ({hauteur}\"). "
                 f"Attendu {row['height_min']}–{row['height_max']}\""
             )
 
