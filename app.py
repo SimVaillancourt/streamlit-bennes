@@ -288,7 +288,7 @@ if st.button("Valider la configuration"):
     # EXPORT LANGAGE DE PRODUCTION
     # ======================================================
     st.divider()
-    st.subheader("Export – Langage de production")
+    st.subheader("Export – Codes de production")
 
     if not erreurs_config:
         df_export = traduire_production(
