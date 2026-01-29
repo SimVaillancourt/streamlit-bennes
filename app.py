@@ -28,6 +28,22 @@ for df in [options_df, accessoires_df, conditions_bennes_df, conditions_accessoi
         df[col] = df[col].str.strip()
 
 # ======================================================
+# AJOUT DE LA CATEGORIE POUR ACCESSOIRES
+# ======================================================
+def determiner_categorie(nom_option):
+    nom_option = nom_option.lower()
+    if "porte" in nom_option:
+        return "Porte"
+    elif "cote" in nom_option or "côté" in nom_option:
+        return "Cote"
+    elif "devant" in nom_option or "dev" in nom_option:
+        return "Devant"
+    else:
+        return "Autre"
+
+accessoires_df["Categorie"] = accessoires_df["NOM OPTION"].apply(determiner_categorie)
+
+# ======================================================
 # FONCTIONS UTILITAIRES
 # ======================================================
 def parse_dimension(val):
@@ -45,28 +61,25 @@ def parse_dimension(val):
     except:
         return None
 
-
 def get_option_value(selection_options, keywords):
     for key, value in selection_options.items():
         if any(k in key.lower() for k in keywords):
             return value
     return None
 
-
 def afficher_code_description(code, df):
-    """Affiche code + description dans la liste, seulement code quand sélectionné"""
-    desc = df.loc[df["Code"] == code, "Description"]
-    if not desc.empty:
-        return f"{code} – {desc.values[0]}"
+    """Affiche nom vente + description dans la liste, seulement code quand sélectionné"""
+    ligne = df[df["NOM OPTION"] == code]
+    if not ligne.empty:
+        return f"{ligne.iloc[0]['NOM VENTE']} – {ligne.iloc[0]['DESCRIPTION']}"
     return code
-
 
 def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
     erreurs = []
     lignes_applicables = []
 
     for _, row in conditions_df.iterrows():
-        prefixes = row["prefixes"].split("|")
+        prefixes = str(row["prefixes"]).split("|")
         if any(code_benne.startswith(p) for p in prefixes):
             lignes_applicables.append(row)
 
@@ -101,12 +114,11 @@ def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
 
     return erreurs
 
-
 def valider_conditions_accessoires(code_benne, accessoires, conditions_df):
     erreurs = []
 
     for _, row in conditions_df.iterrows():
-        prefixes = row["prefixes"].split("|")
+        prefixes = str(row["prefixes"]).split("|")
 
         if not ("*" in prefixes or any(code_benne.startswith(p) for p in prefixes)):
             continue
@@ -142,18 +154,17 @@ def traduire_production(selection_options, accessoires, options_df, accessoires_
 
     # Accessoires
     for acc in accessoires:
-        ligne = accessoires_df[accessoires_df["Code"] == acc]
+        ligne = accessoires_df[accessoires_df["NOM OPTION"] == acc]
         if not ligne.empty:
             prod = ligne.iloc[0].get("production_code", acc)
             lignes.append({
                 "Type": "Accessoire",
                 "Code": acc,
-                "Valeur": ligne.iloc[0]["Description"],
+                "Valeur": ligne.iloc[0]["DESCRIPTION"],
                 "Production": prod
             })
 
     return pd.DataFrame(lignes)
-
 
 # ======================================================
 # LOGO + TITRE
@@ -202,24 +213,24 @@ col1, col2 = st.columns(2)
 with col1:
     accessoires_portes = st.multiselect(
         "Options de portes",
-        portes_df["Code"].tolist(),
+        portes_df["NOM OPTION"].tolist(),
         format_func=lambda x: afficher_code_description(x, portes_df)
     )
     accessoires_cotes = st.multiselect(
         "Options de côtés",
-        cotes_df["Code"].tolist(),
+        cotes_df["NOM OPTION"].tolist(),
         format_func=lambda x: afficher_code_description(x, cotes_df)
     )
 
 with col2:
     accessoires_devant = st.multiselect(
         "Options de devant",
-        devant_df["Code"].tolist(),
+        devant_df["NOM OPTION"].tolist(),
         format_func=lambda x: afficher_code_description(x, devant_df)
     )
     accessoires_autres = st.multiselect(
         "Autres options",
-        autres_df["Code"].tolist(),
+        autres_df["NOM OPTION"].tolist(),
         format_func=lambda x: afficher_code_description(x, autres_df)
     )
 
