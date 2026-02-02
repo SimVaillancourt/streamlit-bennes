@@ -28,22 +28,6 @@ for df in [options_df, accessoires_df, conditions_bennes_df, conditions_accessoi
         df[col] = df[col].str.strip()
 
 # ======================================================
-# AJOUT DE LA CATEGORIE POUR ACCESSOIRES
-# ======================================================
-def determiner_categorie(nom_option):
-    nom_option = nom_option.lower()
-    if "porte" in nom_option:
-        return "Porte"
-    elif "cote" in nom_option or "côté" in nom_option:
-        return "Cote"
-    elif "devant" in nom_option or "dev" in nom_option:
-        return "Devant"
-    else:
-        return "Autre"
-
-accessoires_df["Categorie"] = accessoires_df["NOM OPTION"].apply(determiner_categorie)
-
-# ======================================================
 # FONCTIONS UTILITAIRES
 # ======================================================
 def parse_dimension(val):
@@ -67,13 +51,6 @@ def get_option_value(selection_options, keywords):
             return value
     return None
 
-def afficher_code_description(code, df):
-    """Affiche nom vente + description dans la liste, seulement code quand sélectionné"""
-    ligne = df[df["NOM OPTION"] == code]
-    if not ligne.empty:
-        return f"{ligne.iloc[0]['NOM VENTE']} – {ligne.iloc[0]['DESCRIPTION']}"
-    return code
-
 def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
     erreurs = []
     lignes_applicables = []
@@ -91,20 +68,17 @@ def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
 
         if not (row["long_min"] <= longueur <= row["long_max"]):
             erreurs_locales.append(
-                f"❌ Longueur invalide ({longueur}'). "
-                f"Attendu {row['long_min']}–{row['long_max']}'"
+                f"❌ Longueur invalide ({longueur}'). Attendu {row['long_min']}–{row['long_max']}'"
             )
 
         if not (row["height_min"] <= hauteur <= row["height_max"]):
             erreurs_locales.append(
-                f"❌ Hauteur du côté invalide ({hauteur}\"). "
-                f"Attendu {row['height_min']}–{row['height_max']}\""
+                f"❌ Hauteur de côté invalide ({hauteur}\"). Attendu {row['height_min']}–{row['height_max']}\""
             )
 
         if not (row["door_height_min"] <= porte <= row["door_height_max"]):
             erreurs_locales.append(
-                f"❌ Hauteur de porte invalide ({porte}\"). "
-                f"Attendu {row['door_height_min']}–{row['door_height_max']}\""
+                f"❌ Hauteur de porte invalide ({porte}\"). Attendu {row['door_height_min']}–{row['door_height_max']}\""
             )
 
         if not erreurs_locales:
@@ -133,38 +107,25 @@ def valider_conditions_accessoires(code_benne, accessoires, conditions_df):
 
     return erreurs
 
-def traduire_production(selection_options, accessoires, options_df, accessoires_df):
+def traduire_production(accessoires, accessoires_df):
     lignes = []
 
-    # Options principales
-    for option, valeur in selection_options.items():
-        ligne = options_df[
-            (options_df["option"] == option) &
-            (options_df["label"] == valeur)
-        ]
-
-        if not ligne.empty:
-            prod = ligne.iloc[0].get("production_code", valeur)
-            lignes.append({
-                "Type": "Option",
-                "Code": option,
-                "Valeur": valeur,
-                "Production": prod
-            })
-
-    # Accessoires
     for acc in accessoires:
         ligne = accessoires_df[accessoires_df["NOM OPTION"] == acc]
         if not ligne.empty:
             prod = ligne.iloc[0].get("production_code", acc)
             lignes.append({
-                "Type": "Accessoire",
-                "Code": acc,
-                "Valeur": ligne.iloc[0]["DESCRIPTION"],
-                "Production": prod
+                "Code": prod,
+                "Description": ligne.iloc[0]["DESCRIPTION"]
             })
 
     return pd.DataFrame(lignes)
+
+def afficher_accessoire(code):
+    ligne = accessoires_df[accessoires_df["NOM OPTION"] == code]
+    if not ligne.empty:
+        return f"{ligne.iloc[0]['NOM VENTE']} – {ligne.iloc[0]['DESCRIPTION']}"
+    return code
 
 # ======================================================
 # LOGO + TITRE
@@ -188,8 +149,8 @@ st.header("Configuration de la benne")
 
 options_a_afficher = options_df["option"].unique()
 selection_options = {}
-col1, col2 = st.columns(2)
 
+col1, col2 = st.columns(2)
 for i, opt in enumerate(options_a_afficher):
     valeurs = options_df[options_df["option"] == opt]["label"].unique()
     with col1 if i % 2 == 0 else col2:
@@ -199,46 +160,14 @@ for i, opt in enumerate(options_a_afficher):
         )
 
 # ======================================================
-# ACCESSOIRES PAR CATÉGORIE
+# ACCESSOIRES – UNE SEULE BOÎTE
 # ======================================================
 st.header("Accessoires et options")
 
-portes_df = accessoires_df[accessoires_df["Categorie"] == "Porte"]
-cotes_df = accessoires_df[accessoires_df["Categorie"] == "Cote"]
-devant_df = accessoires_df[accessoires_df["Categorie"] == "Devant"]
-autres_df = accessoires_df[accessoires_df["Categorie"] == "Autre"]
-
-col1, col2 = st.columns(2)
-
-with col1:
-    accessoires_portes = st.multiselect(
-        "Options de portes",
-        portes_df["NOM OPTION"].tolist(),
-        format_func=lambda x: afficher_code_description(x, portes_df)
-    )
-    accessoires_cotes = st.multiselect(
-        "Options de côtés",
-        cotes_df["NOM OPTION"].tolist(),
-        format_func=lambda x: afficher_code_description(x, cotes_df)
-    )
-
-with col2:
-    accessoires_devant = st.multiselect(
-        "Options de devant",
-        devant_df["NOM OPTION"].tolist(),
-        format_func=lambda x: afficher_code_description(x, devant_df)
-    )
-    accessoires_autres = st.multiselect(
-        "Autres options",
-        autres_df["NOM OPTION"].tolist(),
-        format_func=lambda x: afficher_code_description(x, autres_df)
-    )
-
-accessoires_selectionnes = (
-    accessoires_portes
-    + accessoires_cotes
-    + accessoires_devant
-    + accessoires_autres
+accessoires_selectionnes = st.multiselect(
+    "Tous les accessoires",
+    accessoires_df["NOM OPTION"].tolist(),
+    format_func=afficher_accessoire
 )
 
 # ======================================================
@@ -253,8 +182,9 @@ if st.button("Valider la configuration"):
     longueur = parse_dimension(get_option_value(selection_options, ["long"]))
     hauteur = parse_dimension(get_option_value(selection_options, ["height", "hauteur"]))
     porte = parse_dimension(get_option_value(selection_options, ["porte", "door"]))
+    reservoir_selectionne = get_option_value(selection_options, ["reservoir"])
 
-    if None in [code_benne, longueur, hauteur, porte]:
+    if None in [code_benne, longueur, hauteur, porte, reservoir_selectionne]:
         erreurs_config.append("❌ Impossible de lire les dimensions sélectionnées")
     else:
         erreurs_config.extend(
@@ -288,32 +218,28 @@ if st.button("Valider la configuration"):
             unsafe_allow_html=True
         )
 
-    if accessoires_selectionnes:
-        st.write("Accessoires sélectionnés :")
-        for acc in accessoires_selectionnes:
-            st.write("•", acc)
-    else:
-        st.info("Aucun accessoire sélectionné.")
-
     # ======================================================
-    # EXPORT LANGAGE DE PRODUCTION
+    # EXPORT PRODUCTION – FORMAT PERSONNALISÉ
     # ======================================================
     st.divider()
     st.subheader("Export – Codes de production")
 
     if not erreurs_config:
-        df_export = traduire_production(
-            selection_options,
-            accessoires_selectionnes,
-            options_df,
-            accessoires_df
-        )
+        df_accessoires = traduire_production(accessoires_selectionnes, accessoires_df)
+
+        codes_accessoires = df_accessoires.get("Code", []).tolist()  # seulement accessoires
+        config_compacte = f"{code_benne} {longueur}' x {hauteur} x {porte}D {reservoir_selectionne}"
+
+        df_export_final = pd.DataFrame({
+            "Configuration": [config_compacte],
+            "Options": [",".join(codes_accessoires)]
+        })
 
         st.download_button(
-            label="📤 Télécharger la configuration (CSV production)",
-            data=df_export.to_csv(index=False),
-            file_name="configuration_production.csv",
-            mime="text/csv"
+            "📤 Télécharger la configuration (CSV production)",
+            df_export_final.to_csv(index=False),
+            "configuration_production.csv",
+            "text/csv"
         )
 
-        st.dataframe(df_export, use_container_width=True)
+        st.dataframe(df_export_final, use_container_width=True)

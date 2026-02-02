@@ -136,6 +136,12 @@ type_devant,DPP,DPP
 type_devant,DPP51,DPP51
 type_devant,DPP65,DPP65
 
+reservoir,20T,20T
+reservoir,30T,30T
+reservoir,40T,40T
+reservoir,50T,50T
+reservoir,60T,60T
+
 cylindre,Standard,STD
 cylindre,Renforcé,REN
 cylindre,Haute pression,HP
