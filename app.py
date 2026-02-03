@@ -19,6 +19,15 @@ accessoires_df = pd.read_csv("accessoires.csv")
 conditions_bennes_df = pd.read_csv("conditions_bennes.csv")
 conditions_accessoires_df = pd.read_csv("conditions_accessoires.csv")
 
+# Historique avec séparateur ;
+historique_df = pd.read_csv(
+    "historique_commande.csv",
+    sep=";",
+    names=["CONFIG_OPTIONS", "DATE_PROD"],
+    engine="python"
+)
+historique_df["DATE_PROD"] = pd.to_datetime(historique_df["DATE_PROD"], dayfirst=True)
+
 # ======================================================
 # NETTOYAGE DES DONNÉES
 # ======================================================
@@ -93,7 +102,6 @@ def valider_conditions_accessoires(code_benne, accessoires, conditions_df):
 
     for _, row in conditions_df.iterrows():
         prefixes = str(row["prefixes"]).split("|")
-
         if not ("*" in prefixes or any(code_benne.startswith(p) for p in prefixes)):
             continue
 
@@ -158,6 +166,12 @@ for i, opt in enumerate(options_a_afficher):
             opt.replace("_", " ").capitalize(),
             valeurs
         )
+
+# ======================================================
+# TYPE DE PORTE
+# ======================================================
+st.header("Type de porte")
+type_porte = st.selectbox("Sélectionnez le type de porte :", ["D", "I"])  # D = droite, I = inclinée
 
 # ======================================================
 # ACCESSOIRES – UNE SEULE BOÎTE
@@ -226,13 +240,26 @@ if st.button("Valider la configuration"):
 
     if not erreurs_config:
         df_accessoires = traduire_production(accessoires_selectionnes, accessoires_df)
+        codes_accessoires = df_accessoires["Code"].tolist() if not df_accessoires.empty else []
 
-        codes_accessoires = df_accessoires.get("Code", []).tolist()  # seulement accessoires
-        config_compacte = f"{code_benne} {longueur}' x {hauteur} x {porte}D {reservoir_selectionne}"
+        # Configuration compacte avec type de porte
+        config_compacte = f"{code_benne} {longueur}' x {hauteur} x {porte}{type_porte} {reservoir_selectionne}"
 
+        # Vérification historique : est-ce qu'une benne avec ces options existe déjà ?
+        options_str = ",".join(codes_accessoires)
+        historique_trouves = historique_df[
+            historique_df["CONFIG_OPTIONS"].str.contains(options_str)
+        ]
+
+        date_existante = None
+        if not historique_trouves.empty:
+            date_existante = historique_trouves["DATE_PROD"].max().strftime("%d-%b-%y")
+            st.warning(f"⚠️ Une benne avec ces options existe déjà (dernière date : {date_existante})")
+
+        # Export CSV final
         df_export_final = pd.DataFrame({
             "Configuration": [config_compacte],
-            "Options": [",".join(codes_accessoires)]
+            "Options": [options_str]
         })
 
         st.download_button(

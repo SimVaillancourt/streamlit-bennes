@@ -123,10 +123,31 @@ hauteur_poteau,84",84
 hauteur_poteau,96",96
 
 
+
+hauteur_porte,26",26
+hauteur_porte,28",28
+hauteur_porte,30",30
+hauteur_porte,32",32
+hauteur_porte,34",34
+hauteur_porte,36",36
+hauteur_porte,38",38
+hauteur_porte,40",40
+hauteur_porte,42",42
+hauteur_porte,44",44
+hauteur_porte,46",46
 hauteur_porte,48",48
+hauteur_porte,50",50
+hauteur_porte,52",52
 hauteur_porte,54",54
+hauteur_porte,56",56
+hauteur_porte,58",58
 hauteur_porte,60",60
+hauteur_porte,62",62
+hauteur_porte,64",64
 hauteur_porte,66",66
+
+porte_type,Droite,D
+porte_type,Inclinée,I
 
 type_devant,20,20
 type_devant,30,30
