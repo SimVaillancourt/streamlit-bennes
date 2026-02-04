@@ -146,8 +146,6 @@ hauteur_porte,62",62
 hauteur_porte,64",64
 hauteur_porte,66",66
 
-porte_type,Droite,D
-porte_type,Inclinée,I
 
 type_devant,20,20
 type_devant,30,30

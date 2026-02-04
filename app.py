@@ -19,29 +19,19 @@ accessoires_df = pd.read_csv("accessoires.csv")
 conditions_bennes_df = pd.read_csv("conditions_bennes.csv")
 conditions_accessoires_df = pd.read_csv("conditions_accessoires.csv")
 
-# Historique : FORMAT
-# CONFIG_OPTIONS ; DD-MM-YY
+# Historique avec séparateur ;
 historique_df = pd.read_csv(
     "historique_commande.csv",
     sep=";",
     names=["CONFIG_OPTIONS", "DATE_PROD"],
     engine="python"
 )
-historique_df["DATE_PROD"] = pd.to_datetime(
-    historique_df["DATE_PROD"],
-    dayfirst=True,
-    errors="coerce"
-)
+historique_df["DATE_PROD"] = pd.to_datetime(historique_df["DATE_PROD"], dayfirst=True)
 
 # ======================================================
 # NETTOYAGE DES DONNÉES
 # ======================================================
-for df in [
-    options_df,
-    accessoires_df,
-    conditions_bennes_df,
-    conditions_accessoires_df,
-]:
+for df in [options_df, accessoires_df, conditions_bennes_df, conditions_accessoires_df]:
     df.columns = df.columns.str.strip()
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].str.strip()
@@ -52,15 +42,16 @@ for df in [
 def parse_dimension(val):
     if val is None:
         return None
-    val = str(val).replace('"', "").strip()
+    val = str(val).strip()
     if "'" in val:
         try:
             return float(val.split("'")[0])
-        except ValueError:
+        except:
             return None
+    val = val.replace('"', '')
     try:
         return float(val)
-    except ValueError:
+    except:
         return None
 
 def get_option_value(selection_options, keywords):
@@ -71,38 +62,38 @@ def get_option_value(selection_options, keywords):
 
 def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
     erreurs = []
-    lignes = []
+    lignes_applicables = []
 
     for _, row in conditions_df.iterrows():
         prefixes = str(row["prefixes"]).split("|")
         if any(code_benne.startswith(p) for p in prefixes):
-            lignes.append(row)
+            lignes_applicables.append(row)
 
-    if not lignes:
+    if not lignes_applicables:
         return ["❌ Aucune règle de dimensions trouvée pour ce code de benne"]
 
-    for row in lignes:
-        local = []
+    for row in lignes_applicables:
+        erreurs_locales = []
 
         if not (row["long_min"] <= longueur <= row["long_max"]):
-            local.append(
+            erreurs_locales.append(
                 f"❌ Longueur invalide ({longueur}'). Attendu {row['long_min']}–{row['long_max']}'"
             )
 
         if not (row["height_min"] <= hauteur <= row["height_max"]):
-            local.append(
-                f"❌ Hauteur invalide ({hauteur}\"). Attendu {row['height_min']}–{row['height_max']}\""
+            erreurs_locales.append(
+                f"❌ Hauteur de côté invalide ({hauteur}\"). Attendu {row['height_min']}–{row['height_max']}\""
             )
 
         if not (row["door_height_min"] <= porte <= row["door_height_max"]):
-            local.append(
-                f"❌ Porte invalide ({porte}\"). Attendu {row['door_height_min']}–{row['door_height_max']}\""
+            erreurs_locales.append(
+                f"❌ Hauteur de porte invalide ({porte}\"). Attendu {row['door_height_min']}–{row['door_height_max']}\""
             )
 
-        if not local:
+        if not erreurs_locales:
             return []
 
-        erreurs.extend(local)
+        erreurs.extend(erreurs_locales)
 
     return erreurs
 
@@ -148,12 +139,12 @@ def afficher_accessoire(code):
 # LOGO + TITRE
 # ======================================================
 logo = Image.open("logo.jpg")
-c1, c2 = st.columns([1, 5])
+col1, col2 = st.columns([1, 5])
 
-with c1:
-    st.image(logo, width=220)
+with col1:
+    st.image(logo, width=250)
 
-with c2:
+with col2:
     st.markdown(
         "<h1 style='text-align:center;'>Validation des options de bennes</h1>",
         unsafe_allow_html=True
@@ -164,9 +155,10 @@ with c2:
 # ======================================================
 st.header("Configuration de la benne")
 
-options_a_afficher = options_df["option"].unique()
-selection_options = {}
+# Exclure type_porte pour éviter le doublon
+options_a_afficher = [opt for opt in options_df["option"].unique() if opt.lower() != "type_porte"]
 
+selection_options = {}
 col1, col2 = st.columns(2)
 
 for i, opt in enumerate(options_a_afficher):
@@ -177,8 +169,10 @@ for i, opt in enumerate(options_a_afficher):
             valeurs
         )
 
-# TYPE DE PORTE (UN SEUL ENDROIT – STABLE)
-st.selectbox(
+# ======================================================
+# TYPE DE PORTE (UNE SEULE BOÎTE)
+# ======================================================
+type_porte = st.selectbox(
     "Type de porte",
     ["D", "I"],
     key="type_porte",
@@ -186,7 +180,7 @@ st.selectbox(
 )
 
 # ======================================================
-# ACCESSOIRES
+# ACCESSOIRES – UNE SEULE BOÎTE
 # ======================================================
 st.header("Accessoires et options")
 
@@ -204,13 +198,13 @@ if st.button("Valider la configuration"):
     erreurs_config = []
     st.subheader("Résultat de validation")
 
-    code_benne = get_option_value(selection_options, ["code", "modele", "benne"])
+    code_benne = get_option_value(selection_options, ["code", "modele", "prefix", "benne"])
     longueur = parse_dimension(get_option_value(selection_options, ["long"]))
     hauteur = parse_dimension(get_option_value(selection_options, ["height", "hauteur"]))
     porte = parse_dimension(get_option_value(selection_options, ["porte", "door"]))
-    reservoir = get_option_value(selection_options, ["reservoir"])
+    reservoir_selectionne = get_option_value(selection_options, ["reservoir"])
 
-    if None in [code_benne, longueur, hauteur, porte, reservoir]:
+    if None in [code_benne, longueur, hauteur, porte, reservoir_selectionne]:
         erreurs_config.append("❌ Impossible de lire les dimensions sélectionnées")
     else:
         erreurs_config.extend(
@@ -238,48 +232,47 @@ if st.button("Valider la configuration"):
         )
         for err in erreurs_config:
             st.write("•", err)
-        st.stop()
-
-    st.markdown(
-        "<h3 style='background-color:lightgreen; padding:10px; text-align:center;'>✅ CONFIGURATION BONNE</h3>",
-        unsafe_allow_html=True
-    )
+    else:
+        st.markdown(
+            "<h3 style='background-color:lightgreen; padding:10px; text-align:center;'>✅ CONFIGURATION BONNE</h3>",
+            unsafe_allow_html=True
+        )
 
     # ======================================================
-    # EXPORT
+    # EXPORT PRODUCTION – FORMAT PERSONNALISÉ
     # ======================================================
     st.divider()
     st.subheader("Export – Codes de production")
 
-    type_porte = st.session_state.get("type_porte", "D")
+    if not erreurs_config:
+        df_accessoires = traduire_production(accessoires_selectionnes, accessoires_df)
+        codes_accessoires = df_accessoires["Code"].tolist() if not df_accessoires.empty else []
 
-    df_accessoires = traduire_production(accessoires_selectionnes, accessoires_df)
-    codes_accessoires = df_accessoires["Code"].tolist() if not df_accessoires.empty else []
+        # Configuration compacte avec type de porte
+        config_compacte = f"{code_benne} {longueur}' x {hauteur} x {porte}{type_porte} {reservoir_selectionne}"
 
-    config_compacte = (
-        f"{code_benne} {int(longueur)}' x {int(hauteur)} x {int(porte)}{type_porte} {reservoir}"
-    )
+        # Vérification historique : est-ce qu'une benne avec ces options existe déjà ?
+        options_str = ",".join(codes_accessoires)
+        historique_trouves = historique_df[
+            historique_df["CONFIG_OPTIONS"].str.contains(options_str)
+        ]
 
-    options_str = ",".join(codes_accessoires)
+        date_existante = None
+        if not historique_trouves.empty:
+            date_existante = historique_trouves["DATE_PROD"].max().strftime("%d-%b-%y")
+            st.warning(f"⚠️ Une benne avec ces options existe déjà (dernière date : {date_existante})")
 
-    historique_trouves = historique_df[
-        historique_df["CONFIG_OPTIONS"].str.contains(options_str, na=False)
-    ]
+        # Export CSV final
+        df_export_final = pd.DataFrame({
+            "Configuration": [config_compacte],
+            "Options": [options_str]
+        })
 
-    if not historique_trouves.empty:
-        date_max = historique_trouves["DATE_PROD"].max().strftime("%d-%m-%y")
-        st.warning(f"⚠️ Configuration déjà produite (dernière fois : {date_max})")
+        st.download_button(
+            "📤 Télécharger la configuration (CSV production)",
+            df_export_final.to_csv(index=False),
+            "configuration_production.csv",
+            "text/csv"
+        )
 
-    df_export = pd.DataFrame({
-        "Configuration": [config_compacte],
-        "Options": [options_str]
-    })
-
-    st.download_button(
-        "📤 Télécharger la configuration (CSV production)",
-        df_export.to_csv(index=False),
-        "configuration_production.csv",
-        "text/csv"
-    )
-
-    st.dataframe(df_export, use_container_width=True)
+        st.dataframe(df_export_final, use_container_width=True)
