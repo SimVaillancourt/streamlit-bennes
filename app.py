@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from PIL import Image
+from datetime import datetime
+import re
 
 # ======================================================
 # CONFIGURATION PAGE
@@ -19,14 +21,40 @@ accessoires_df = pd.read_csv("accessoires.csv")
 conditions_bennes_df = pd.read_csv("conditions_bennes.csv")
 conditions_accessoires_df = pd.read_csv("conditions_accessoires.csv")
 
-# Historique avec séparateur ;
 historique_df = pd.read_csv(
     "historique_commande.csv",
     sep=";",
     names=["CONFIG_OPTIONS", "DATE_PROD"],
     engine="python"
 )
-historique_df["DATE_PROD"] = pd.to_datetime(historique_df["DATE_PROD"], dayfirst=True)
+
+historique_df["DATE_PROD"] = pd.to_datetime(
+    historique_df["DATE_PROD"],
+    dayfirst=True,
+    errors="coerce"
+)
+
+# ======================================================
+# CORRECTION DES ANNÉES SUR 2 CHIFFRES
+# ======================================================
+def corriger_annee(dt):
+    """
+    00–30  -> 2000–2030
+    31–99  -> 1900–1999
+    """
+    if pd.isna(dt):
+        return dt
+
+    annee = dt.year
+    if annee < 100:
+        if annee <= 30:
+            annee += 2000
+        else:
+            annee += 1900
+        return dt.replace(year=annee)
+    return dt
+
+historique_df["DATE_PROD"] = historique_df["DATE_PROD"].apply(corriger_annee)
 
 # ======================================================
 # NETTOYAGE DES DONNÉES
@@ -40,19 +68,39 @@ for df in [options_df, accessoires_df, conditions_bennes_df, conditions_accessoi
 # FONCTIONS UTILITAIRES
 # ======================================================
 def parse_dimension(val):
+    """
+    Convertit une dimension en float.
+    Supporte :
+    - format pieds-pouces : 11'-6
+    - ancien format numérique : 11.5, 11
+    - format avec guillemets ou apostrophe : 11", 11'
+    """
     if val is None:
         return None
+
     val = str(val).strip()
-    if "'" in val:
-        try:
-            return float(val.split("'")[0])
-        except:
-            return None
-    val = val.replace('"', '')
+
+    # Format pieds-pouces : 11'-6 ou 11'-0
+    match = re.match(r"^(\d+)\s*'\s*-\s*(\d+)$", val)
+    if match:
+        pieds = int(match.group(1))
+        pouces = int(match.group(2))
+        return pieds + pouces / 12
+
+    # Ancien format : 11', 11", 11.5, 11
+    val = val.replace('"', '').replace("'", "")
     try:
         return float(val)
     except:
         return None
+
+def format_longueur(val):
+    pieds = int(val)
+    pouces = int(round((val - pieds) * 12))
+    if pouces == 12:
+        pieds += 1
+        pouces = 0
+    return f"{pieds}'-{pouces}"
 
 def get_option_value(selection_options, keywords):
     for key, value in selection_options.items():
@@ -77,19 +125,23 @@ def valider_dimensions(code_benne, longueur, hauteur, porte, conditions_df):
 
         if not (row["long_min"] <= longueur <= row["long_max"]):
             erreurs_locales.append(
-                f"❌ Longueur invalide ({longueur}'). Attendu {row['long_min']}–{row['long_max']}'"
+                f"❌ Longueur invalide ({format_longueur(longueur)}). "
+                f"Attendu {format_longueur(row['long_min'])}–{format_longueur(row['long_max'])}"
             )
 
         if not (row["height_min"] <= hauteur <= row["height_max"]):
             erreurs_locales.append(
-                f"❌ Hauteur de côté invalide ({hauteur}\"). Attendu {row['height_min']}–{row['height_max']}\""
+                f"❌ Hauteur de côté invalide ({int(hauteur)}\"). "
+                f"Attendu {int(row['height_min'])}–{int(row['height_max'])}\""
             )
 
         if not (row["door_height_min"] <= porte <= row["door_height_max"]):
             erreurs_locales.append(
-                f"❌ Hauteur de porte invalide ({porte}\"). Attendu {row['door_height_min']}–{row['door_height_max']}\""
+                f"❌ Hauteur de porte invalide ({int(porte)}\"). "
+                f"Attendu {int(row['door_height_min'])}–{int(row['door_height_max'])}\""
             )
 
+        # Si aucune erreur locale, c'est OK pour cette ligne
         if not erreurs_locales:
             return []
 
@@ -155,8 +207,10 @@ with col2:
 # ======================================================
 st.header("Configuration de la benne")
 
-# Exclure type_porte pour éviter le doublon
-options_a_afficher = [opt for opt in options_df["option"].unique() if opt.lower() != "type_porte"]
+options_a_afficher = [
+    opt for opt in options_df["option"].unique()
+    if opt.lower() != "type_porte"
+]
 
 selection_options = {}
 col1, col2 = st.columns(2)
@@ -170,17 +224,16 @@ for i, opt in enumerate(options_a_afficher):
         )
 
 # ======================================================
-# TYPE DE PORTE (UNE SEULE BOÎTE)
+# TYPE DE PORTE
 # ======================================================
 type_porte = st.selectbox(
     "Type de porte",
     ["D", "I"],
-    key="type_porte",
     format_func=lambda x: "Droite (D)" if x == "D" else "Inclinée (I)"
 )
 
 # ======================================================
-# ACCESSOIRES – UNE SEULE BOÎTE
+# ACCESSOIRES
 # ======================================================
 st.header("Accessoires et options")
 
@@ -205,24 +258,16 @@ if st.button("Valider la configuration"):
     reservoir_selectionne = get_option_value(selection_options, ["reservoir"])
 
     if None in [code_benne, longueur, hauteur, porte, reservoir_selectionne]:
-        erreurs_config.append("❌ Impossible de lire les dimensions sélectionnées")
+        erreurs_config.append(
+            "❌ Dimensions invalides. Format attendu : 11'-6 ou valeur numérique (ex: 11.5)"
+        )
     else:
         erreurs_config.extend(
-            valider_dimensions(
-                code_benne,
-                longueur,
-                hauteur,
-                porte,
-                conditions_bennes_df
-            )
+            valider_dimensions(code_benne, longueur, hauteur, porte, conditions_bennes_df)
         )
 
     erreurs_config.extend(
-        valider_conditions_accessoires(
-            code_benne,
-            accessoires_selectionnes,
-            conditions_accessoires_df
-        )
+        valider_conditions_accessoires(code_benne, accessoires_selectionnes, conditions_accessoires_df)
     )
 
     if erreurs_config:
@@ -239,7 +284,7 @@ if st.button("Valider la configuration"):
         )
 
     # ======================================================
-    # EXPORT PRODUCTION – FORMAT PERSONNALISÉ
+    # EXPORT + HISTORIQUE
     # ======================================================
     st.divider()
     st.subheader("Export – Codes de production")
@@ -248,21 +293,23 @@ if st.button("Valider la configuration"):
         df_accessoires = traduire_production(accessoires_selectionnes, accessoires_df)
         codes_accessoires = df_accessoires["Code"].tolist() if not df_accessoires.empty else []
 
-        # Configuration compacte avec type de porte
-        config_compacte = f"{code_benne} {longueur}' x {hauteur} x {porte}{type_porte} {reservoir_selectionne}"
-
-        # Vérification historique : est-ce qu'une benne avec ces options existe déjà ?
+        config_compacte = (
+            f"{code_benne} "
+            f"{format_longueur(longueur)} x "
+            f"{int(hauteur)} x "
+            f"{int(porte)}{type_porte} "
+            f"{reservoir_selectionne}"
+        )
         options_str = ",".join(codes_accessoires)
+
         historique_trouves = historique_df[
-            historique_df["CONFIG_OPTIONS"].str.contains(options_str)
+            historique_df["CONFIG_OPTIONS"].str.contains(options_str, na=False)
         ]
 
-        date_existante = None
         if not historique_trouves.empty:
-            date_existante = historique_trouves["DATE_PROD"].max().strftime("%d-%b-%y")
+            date_existante = historique_trouves["DATE_PROD"].max().strftime("%d-%b-%Y")
             st.warning(f"⚠️ Une benne avec ces options existe déjà (dernière date : {date_existante})")
 
-        # Export CSV final
         df_export_final = pd.DataFrame({
             "Configuration": [config_compacte],
             "Options": [options_str]
