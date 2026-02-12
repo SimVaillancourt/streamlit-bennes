@@ -48,13 +48,13 @@ OPTION_MAPPING = {
     "longueur": ["longueur"],
     "hauteur": ["hauteur_cote"],
     "porte": ["hauteur_porte"],
+    "type_porte": ["type_porte"],
     "reservoir": ["reservoir"]
 }
 
 # ======================================================
 # FONCTIONS
 # ======================================================
-
 def parse_dimension(val):
     if val is None:
         return None
@@ -69,7 +69,6 @@ def parse_dimension(val):
     except:
         return None
 
-
 def format_longueur(val):
     pieds = int(val)
     pouces = int(round((val - pieds) * 12))
@@ -78,55 +77,45 @@ def format_longueur(val):
         pouces = 0
     return f"{pieds}'-{pouces}"
 
-
 def get_mapped_option(selection, possibles):
     for key, value in selection.items():
         if key.lower() in possibles:
             return value
     return None
 
+def construire_base_config(code_benne, longueur, hauteur, porte, reservoir, type_porte):
+    # Ajout du type de porte (D ou I) à la hauteur de la porte
+    porte_avec_type = f"{int(porte)}{type_porte}"
+    return f"{code_benne} {format_longueur(longueur)} x {int(hauteur)} x {porte_avec_type} {reservoir}"
 
-def construire_base_config(code_benne, longueur, hauteur, porte, reservoir):
-    return f"{code_benne} {format_longueur(longueur)} x {int(hauteur)} x {int(porte)} {reservoir}"
-
-
-# 🔎 HISTORIQUE CORRIGÉ
-def chercher_historique(df, code_benne, longueur, hauteur, porte, reservoir, accessoires_selectionnes):
-
-    base = construire_base_config(code_benne, longueur, hauteur, porte, reservoir)
-    lignes_valides = []
+# 🔎 HISTORIQUE
+def chercher_historique(df, code_benne, longueur, hauteur, porte, reservoir, type_porte, accessoires_selectionnes):
+    base = construire_base_config(code_benne, longueur, hauteur, porte, reservoir, type_porte).strip()
+    correspondances = []
 
     for _, row in df.iterrows():
-        config = str(row["Historique"]).strip()
-
-        if not config.startswith(base):
+        ligne = str(row["Historique"]).strip()
+        if not ligne.startswith(base):
             continue
 
-        # Retirer la base
-        reste = config[len(base):].strip()
+        # Retirer la base pour récupérer les accessoires
+        reste = ligne[len(base):].strip()
+        accessoires_hist = [a.strip() for a in reste.split(",") if a.strip()] if reste else []
 
-        if reste == "":
-            accessoires_hist = []
-        else:
-            accessoires_hist = [a.strip() for a in reste.split(",") if a.strip()]
-
-        # Vérifie que tous les accessoires sélectionnés sont présents
         if all(acc in accessoires_hist for acc in accessoires_selectionnes):
-            lignes_valides.append(row)
+            correspondances.append(row)
 
-    if not lignes_valides:
+    if not correspondances:
         return None
 
-    df_valides = pd.DataFrame(lignes_valides)
-    return df_valides["Date"].max()
-
+    df_match = pd.DataFrame(correspondances)
+    return df_match["Date"].max()
 
 def afficher_accessoire(code):
     ligne = accessoires_df[accessoires_df["NOM OPTION"] == code]
     if not ligne.empty:
         return f"{ligne.iloc[0]['NOM VENTE']} – {ligne.iloc[0]['DESCRIPTION']}"
     return code
-
 
 def traduire_production(accessoires):
     codes = []
@@ -136,35 +125,24 @@ def traduire_production(accessoires):
             codes.append(ligne.iloc[0].get("production_code", acc))
     return codes
 
-
 # ======================================================
 # INTERFACE
 # ======================================================
-
 logo = Image.open("logo.jpg")
 c1, c2 = st.columns([1, 5])
-
 with c1:
     st.image(logo, width=250)
-
 with c2:
-    st.markdown(
-        "<h1 style='text-align:center;'>Validation des options de bennes</h1>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<h1 style='text-align:center;'>Validation des options de bennes</h1>", unsafe_allow_html=True)
 
 # ======================================================
 # CONFIGURATION
 # ======================================================
-
 st.header("Configuration de la benne")
-
 selection_options = {}
-opts = [o for o in options_df["option"].unique()
-        if o.lower() not in ["type_porte", "hauteur_poteau", "cylindre"]]
+opts = [o for o in options_df["option"].unique() if o.lower() not in ["hauteur_poteau", "cylindre"]]
 
 c1, c2 = st.columns(2)
-
 for i, opt in enumerate(opts):
     valeurs = options_df[options_df["option"] == opt]["label"].unique()
     with c1 if i % 2 == 0 else c2:
@@ -174,11 +152,20 @@ for i, opt in enumerate(opts):
         )
 
 # ======================================================
+# TYPE DE PORTE
+# ======================================================
+type_porte = st.radio(
+    "Type de porte",
+    options=["D", "I"],
+    index=0,
+    help="D = Droite, I = Inclinée"
+)
+selection_options["type_porte"] = type_porte
+
+# ======================================================
 # ACCESSOIRES
 # ======================================================
-
 st.header("Accessoires")
-
 accessoires_selectionnes = st.multiselect(
     "Tous les accessoires",
     accessoires_df["NOM OPTION"].tolist(),
@@ -188,7 +175,6 @@ accessoires_selectionnes = st.multiselect(
 # ======================================================
 # VALIDATION
 # ======================================================
-
 if st.button("Valider la configuration"):
 
     code_benne = get_mapped_option(selection_options, OPTION_MAPPING["code_benne"])
@@ -196,11 +182,12 @@ if st.button("Valider la configuration"):
     hauteur = parse_dimension(get_mapped_option(selection_options, OPTION_MAPPING["hauteur"]))
     porte = parse_dimension(get_mapped_option(selection_options, OPTION_MAPPING["porte"]))
     reservoir = get_mapped_option(selection_options, OPTION_MAPPING["reservoir"])
+    type_porte = selection_options["type_porte"]
 
     st.success("✅ CONFIGURATION BONNE")
 
     codes_accessoires = traduire_production(accessoires_selectionnes)
-    base_config = construire_base_config(code_benne, longueur, hauteur, porte, reservoir)
+    base_config = construire_base_config(code_benne, longueur, hauteur, porte, reservoir, type_porte)
 
     config_complete = base_config
     if codes_accessoires:
@@ -214,6 +201,7 @@ if st.button("Valider la configuration"):
         hauteur,
         porte,
         reservoir,
+        type_porte,
         codes_accessoires
     )
 
@@ -222,19 +210,12 @@ if st.button("Valider la configuration"):
     else:
         st.info("Aucune production antérieure trouvée")
 
-    # ==================================================
-    # TABLEAU PROPRE (SANS INDEX)
-    # ==================================================
-
     st.subheader("Export – Codes de production")
-
     export_df = pd.DataFrame([{
         "Configuration": config_complete,
         "Options": ", ".join(codes_accessoires)
     }])
-
     st.dataframe(export_df, use_container_width=True, hide_index=True)
-
     st.download_button(
         "📤 Télécharger la configuration",
         export_df.to_csv(index=False),

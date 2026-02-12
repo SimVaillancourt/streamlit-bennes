@@ -155,6 +155,7 @@ type_devant,DPP,DPP
 type_devant,DPP51,DPP51
 type_devant,DPP65,DPP65
 
+reservoir,00,00
 reservoir,20T,20T
 reservoir,30T,30T
 reservoir,40T,40T
