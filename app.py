@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 from PIL import Image
 import re
@@ -49,7 +49,9 @@ OPTION_MAPPING = {
     "hauteur": ["hauteur_cote"],
     "porte": ["hauteur_porte"],
     "type_porte": ["type_porte"],
-    "reservoir": ["reservoir"]
+    "reservoir": ["reservoir"],
+    "type_sol": ["type_sol"],
+    "type_devant": ["type_devant"]
 }
 
 # ======================================================
@@ -84,7 +86,6 @@ def get_mapped_option(selection, possibles):
     return None
 
 def construire_base_config(code_benne, longueur, hauteur, porte, reservoir, type_porte):
-    # Ajout du type de porte (D ou I) à la hauteur de la porte
     porte_avec_type = f"{int(porte)}{type_porte}"
     return f"{code_benne} {format_longueur(longueur)} x {int(hauteur)} x {porte_avec_type} {reservoir}"
 
@@ -98,7 +99,6 @@ def chercher_historique(df, code_benne, longueur, hauteur, porte, reservoir, typ
         if not ligne.startswith(base):
             continue
 
-        # Retirer la base pour récupérer les accessoires
         reste = ligne[len(base):].strip()
         accessoires_hist = [a.strip() for a in reste.split(",") if a.strip()] if reste else []
 
@@ -136,11 +136,11 @@ with c2:
     st.markdown("<h1 style='text-align:center;'>Validation des options de bennes</h1>", unsafe_allow_html=True)
 
 # ======================================================
-# CONFIGURATION
+# CONFIGURATION BENNE
 # ======================================================
 st.header("Configuration de la benne")
 selection_options = {}
-opts = [o for o in options_df["option"].unique() if o.lower() not in ["hauteur_poteau", "cylindre"]]
+opts = [o for o in options_df["option"].unique() if o.lower() not in ["hauteur_poteau", "cylindre", "type_devant", "type_sol", "type_porte", "reservoir"]]
 
 c1, c2 = st.columns(2)
 for i, opt in enumerate(opts):
@@ -151,25 +151,57 @@ for i, opt in enumerate(opts):
             valeurs
         )
 
-# ======================================================
-# TYPE DE PORTE
-# ======================================================
-type_porte = st.radio(
-    "Type de porte",
-    options=["D", "I"],
-    index=0,
-    help="D = Droite, I = Inclinée"
-)
-selection_options["type_porte"] = type_porte
+# Type de porte et Type de réservoir côte à côte
+c1, c2 = st.columns(2)
+with c1:
+    type_porte = st.selectbox(
+        "Type de porte",
+        options=["D", "I"],
+        index=0,
+        help="D = Droite, I = Inclinée"
+    )
+    selection_options["type_porte"] = type_porte
+with c2:
+    reservoir_options = options_df[options_df["option"] == "reservoir"]["label"].unique()
+    reservoir = st.selectbox(
+        "Type de réservoir",
+        reservoir_options,
+        index=0,
+        help="Sélectionnez le type de réservoir"
+    )
+    selection_options["reservoir"] = reservoir
 
 # ======================================================
 # ACCESSOIRES
 # ======================================================
 st.header("Accessoires")
+
+# Type devant (multiselect)
+type_devant_options = options_df[options_df["option"] == "type_devant"]["label"].tolist()
+type_devant_selection = st.multiselect(
+    "Type devant",
+    type_devant_options,
+    default=[],
+    help="Sélectionnez le type devant"
+)
+selection_options["type_devant"] = type_devant_selection[0] if type_devant_selection else None
+
+# Type de sol (multiselect)
+type_sol_options = options_df[options_df["option"] == "type_sol"]["label"].tolist()
+type_sol_selection = st.multiselect(
+    "Type de sol",
+    type_sol_options,
+    default=[],
+    help="Sélectionnez le type de sol"
+)
+selection_options["type_sol"] = type_sol_selection[0] if type_sol_selection else None
+
+# Autres accessoires
 accessoires_selectionnes = st.multiselect(
-    "Tous les accessoires",
+    "Autres accessoires",
     accessoires_df["NOM OPTION"].tolist(),
-    format_func=afficher_accessoire
+    format_func=afficher_accessoire,
+    default=[]
 )
 
 # ======================================================
@@ -181,13 +213,19 @@ if st.button("Valider la configuration"):
     longueur = parse_dimension(get_mapped_option(selection_options, OPTION_MAPPING["longueur"]))
     hauteur = parse_dimension(get_mapped_option(selection_options, OPTION_MAPPING["hauteur"]))
     porte = parse_dimension(get_mapped_option(selection_options, OPTION_MAPPING["porte"]))
-    reservoir = get_mapped_option(selection_options, OPTION_MAPPING["reservoir"])
     type_porte = selection_options["type_porte"]
+    reservoir = selection_options["reservoir"]
 
     st.success("✅ CONFIGURATION BONNE")
 
     codes_accessoires = traduire_production(accessoires_selectionnes)
     base_config = construire_base_config(code_benne, longueur, hauteur, porte, reservoir, type_porte)
+
+    # Ajouter les accessoires type devant et type de sol
+    if selection_options["type_devant"]:
+        codes_accessoires.append(selection_options["type_devant"])
+    if selection_options["type_sol"]:
+        codes_accessoires.append(selection_options["type_sol"])
 
     config_complete = base_config
     if codes_accessoires:
